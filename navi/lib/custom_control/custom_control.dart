@@ -26,6 +26,8 @@ abstract class CustomControl {
   DateTime lastMouseDownTime = DateTime.now();
   Offset lastMouseDownPos = const Offset(0, 0);
 
+  Color _scrollColor = Colors.grey.withOpacity(0.5);
+
   // Private section
   bool _scrollDragX = false;
   bool _scrollDragY = false;
@@ -38,6 +40,10 @@ abstract class CustomControl {
   bool hasFocus = false;
   bool autoFocus = false;
   bool canRequestFocus = true;
+
+  void setScrollColor(Color scrollColor) {
+    _scrollColor = scrollColor;
+  }
 
   // Handlers
   @nonVirtual
@@ -72,13 +78,13 @@ abstract class CustomControl {
     lastMouseDownPos = ev.localPosition;
 
     bool processed = false;
-    if (getVerticalScrollRect().contains(ev.localPosition)) {
+    if (_verticalScrollVisible && getVerticalScrollRect().contains(ev.localPosition)) {
       processed = true;
       _scrollDragY = true;
       _scrollDragBeginOffset = ev.localPosition.dy - getVerticalScrollRect().top;
     }
 
-    if (getHorizontalScrollRect().contains(ev.localPosition)) {
+    if (_horizontalScrollVisible && getHorizontalScrollRect().contains(ev.localPosition)) {
       processed = true;
       _scrollDragX = true;
       _scrollDragBeginOffset = ev.localPosition.dx - getHorizontalScrollRect().left;
@@ -212,6 +218,8 @@ abstract class CustomControl {
     return Rect.fromLTWH(scrollPosition.xOffset * displayK, lastWidgetSize.height - scrollWidth, lastWidgetSize.width * displayK, scrollWidth);
   }
 
+  bool _horizontalScrollVisible = false;
+  bool _verticalScrollVisible = false;
   void drawScrollBar(Canvas canvas, Size widgetSize) {
     if (!scrollable) {
       return;
@@ -221,22 +229,28 @@ abstract class CustomControl {
 
     // Vertical scroll
     if (contentSize.height > lastWidgetSize.height) {
+      _verticalScrollVisible = true;
       var scrollBarRect = getVerticalScrollRect();
       canvas.drawRect(
           scrollBarRect,
           Paint()
-            ..color = Colors.blueAccent.withOpacity(0.3)
+            ..color = _scrollColor
             ..style = PaintingStyle.fill);
+    } else {
+      _verticalScrollVisible = false;
     }
 
     // Horizontal scroll
     if (contentSize.width > lastWidgetSize.width) {
+      _horizontalScrollVisible = true;
       var scrollBarRect = getHorizontalScrollRect();
       canvas.drawRect(
           scrollBarRect,
           Paint()
-            ..color = Colors.blueAccent.withOpacity(0.3)
+            ..color = _scrollColor
             ..style = PaintingStyle.fill);
+    } else {
+      _horizontalScrollVisible = false;
     }
   }
 

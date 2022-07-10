@@ -55,8 +55,9 @@ class CustomListViewControl extends CustomControl {
 
   late Function(CustomListViewRow row)? eventRowDoubleTap;
 
-  double fontSize = 14;
+  double fontSize = 16;
   double cellContentPadding = 4;
+  bool allowDeselectAllRows = false;
 
   CustomListViewRow currentRow() {
     if (currentRowIndex >= 0 && currentRowIndex < _dataSource.rowCount()) {
@@ -73,31 +74,31 @@ class CustomListViewControl extends CustomControl {
   void controlPaint(Canvas canvas, Size size, Rect visibleArea) {
     double colOffsetTemp = 0;
     List<double> columnsWidth = [];
+    List<TextAlign> columnsAligns = [];
     List<double> columnsOffsets = [];
     for (int column = 0; column < _dataSource.columnCount(); column++) {
       var col = _dataSource.column(column);
       columnsWidth.add(col.width());
       columnsOffsets.add(colOffsetTemp);
+      columnsAligns.add(col.textAlign());
       colOffsetTemp += col.width();
     }
 
     for (int row = 0; row < _dataSource.rowCount(); row++) {
+      canvas.drawLine(Offset(0, row * itemHeight()), Offset(size.width, row * itemHeight()), Paint()
+          ..color = Colors.green
+          ..strokeWidth = 0.1
+      );
       for (int column = 0; column < _dataSource.columnCount(); column++) {
         Rect cellRect = Rect.fromLTWH(columnsOffsets[column], row.toDouble() * itemHeight(), columnsWidth[column], itemHeight());
         if (visibleArea.intersect(cellRect).width > 0 || visibleArea.intersect(cellRect).height > 0) {
           canvas.save();
           canvas.clipRect(cellRect);
           String cellData = _dataSource.cellData(row, column);
-          drawText(
-              canvas,
-              cellRect.left + cellContentPadding,
-              cellRect.top + cellContentPadding,
-              cellRect.width - cellContentPadding * 2,
-              cellRect.height - cellContentPadding * 2,
-              cellData,
-              fontSize,
-              Colors.green,
-              TextAlign.left);
+          Color cellColor = _dataSource.cellColor(row, column);
+          double cellFontSize = _dataSource.cellFontSize(row, column);
+          drawText(canvas, cellRect.left + cellContentPadding, cellRect.top + cellContentPadding, cellRect.width - cellContentPadding * 2, cellRect.height - cellContentPadding * 2, cellData, cellFontSize,
+              cellColor, columnsAligns[column]);
           canvas.restore();
         }
       }
@@ -111,6 +112,14 @@ class CustomListViewControl extends CustomControl {
         }
       }
     }
+
+    for (int column = 0; column < _dataSource.columnCount(); column++) {
+      canvas.drawLine(Offset(columnsOffsets[column], 0), Offset(columnsOffsets[column], itemHeight() * _dataSource.rowCount()), Paint()
+        ..color = Colors.green
+        ..strokeWidth = 0.1
+      );
+    }
+
   }
 
   @override
@@ -175,7 +184,10 @@ class CustomListViewControl extends CustomControl {
 
   int findItemByPoint(Offset offset) {
     var index = offset.dy ~/ itemHeight();
-    return index;
+    if (index >= 0 && index < _dataSource.rowCount()) {
+      return index;
+    }
+    return -1;
   }
 
   int currentRowIndex = 0;
@@ -227,29 +239,68 @@ class CustomListViewControl extends CustomControl {
   }
 
   void drawText(Canvas canvas, double x, double y, double width, double height, String text, double size, Color color, TextAlign align) {
-    canvas.save();
+    Size s = measureText(canvas, x, y, width, height, text, size, color, align);
+
+    if (s.width >= width - 5) {
+      Size s1 = measureText(canvas, x, y, width, height, "W", size, color, align);
+      int needLen = (width ~/ s1.width) - 3;
+      text = "${text.substring(0, needLen)}...";
+    }
+
+    s = measureText(canvas, x, y, width, height, text, size, color, align);
+
     var textSpan = TextSpan(
       text: text,
       style: TextStyle(
         color: color,
+        fontFamily: "RobotoMono",
         fontSize: size,
-        overflow: TextOverflow.fade,
+        overflow: TextOverflow.ellipsis,
       ),
     );
-    final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr, textAlign: align, maxLines: 1, ellipsis: "...");
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: align,
+      maxLines: 1,
+    );
     textPainter.layout(
       minWidth: width,
       maxWidth: width,
     );
-    textPainter.paint(canvas, Offset(x, y + (height / 2) - (textPainter.height / 2)));
-    //textPainter.paint(canvas, Offset(x, y));
-    canvas.restore();
+
+    textPainter.paint(canvas, Offset(x, y + (height / 2) - (s.height / 2)));
   }
+}
+
+Size measureText(Canvas canvas, double x, double y, double width, double height, String text, double size, Color color, TextAlign align) {
+  var textSpan = TextSpan(
+    text: text,
+    style: TextStyle(
+      color: color,
+      fontFamily: "RobotoMono",
+      fontSize: size,
+    ),
+  );
+  final textPainter = TextPainter(
+    text: textSpan,
+    textDirection: TextDirection.ltr,
+    textAlign: align,
+    maxLines: 1,
+    //ellipsis: "."
+  );
+  textPainter.layout(
+    minWidth: width,
+    maxWidth: width,
+  );
+
+  return Size(textPainter.maxIntrinsicWidth, textPainter.height);
 }
 
 class CustomListViewColumn {
   String _title = "";
   double _width = 100;
+  TextAlign _textAlign = TextAlign.start;
 
   CustomListViewColumn(this._title, this._width);
 
@@ -268,6 +319,14 @@ class CustomListViewColumn {
   double width() {
     return _width;
   }
+
+  TextAlign textAlign() {
+    return _textAlign;
+  }
+
+  void setAlign(TextAlign textAlign) {
+    _textAlign = textAlign;
+  }
 }
 
 class CustomListViewRow {
@@ -278,6 +337,8 @@ class CustomListViewRow {
   }
 
   final Map<int, String> _cells = {};
+  final Map<int, Color?> _cellsColors = {};
+  final Map<int, double?> _cellsFontSizes = {};
 
   String cellValue(int column) {
     if (_cells.containsKey(column)) {
@@ -287,8 +348,51 @@ class CustomListViewRow {
     return "";
   }
 
+  Color cellColor(int column) {
+    Color res = _color;
+    if (_cellsColors.containsKey(column)) {
+      res = _cellsColors[column] ?? _color;
+    }
+    return res;
+  }
+
+  double cellFontSize(int column) {
+    double res = _fontSize;
+    if (_cellsFontSizes.containsKey(column)) {
+      res = _cellsFontSizes[column] ?? _fontSize;
+    }
+    return res;
+  }
+
   void setCellValue(int column, String value) {
     _cells[column] = value;
+  }
+
+  void setCellColor(int column, Color? color) {
+    _cellsColors[column] = color;
+  }
+
+  void setCellFontSize(int column, double fontSize) {
+    _cellsFontSizes[column] = fontSize;
+  }
+
+  Color _color = Colors.grey;
+  double _fontSize = 16;
+
+  void setColor(Color color) {
+    _color = color;
+  }
+
+  Color color() {
+    return _color;
+  }
+
+  void setFontSize(double fontSize) {
+    _fontSize = fontSize;
+  }
+
+  double fontSize() {
+    return _fontSize;
   }
 }
 
@@ -297,6 +401,8 @@ abstract class CustomListViewDataSource {
   int rowCount();
   CustomListViewRow row(int rowIndex);
   String cellData(int row, int column);
+  Color cellColor(int row, int column) { return Colors.grey; }
+  double cellFontSize(int row, int column) { return 14; }
   void cellDraw(Canvas cnv, Size size, int row, int column) {}
   CustomListViewColumn column(int column);
 }
@@ -324,8 +430,10 @@ class CustomListViewDefaultDataSource extends CustomListViewDataSource {
     return _rows.length;
   }
 
-  void addRow(List<String> cells) {
-    _rows.add(CustomListViewRow(cells));
+  CustomListViewRow addRow(List<String> cells) {
+    CustomListViewRow row = CustomListViewRow(cells);
+    _rows.add(row);
+    return row;
   }
 
   @override
@@ -361,6 +469,28 @@ class CustomListViewDefaultDataSource extends CustomListViewDataSource {
     return _rows[row].cellValue(column);
   }
 
+  @override
+  Color cellColor(int row, int column) {
+    Color col = Colors.grey;
+
+    if (row < 0 || row >= _rows.length) {
+      return col;
+    }
+
+    return _rows[row].cellColor(column);
+  }
+
+  @override
+  double cellFontSize(int row, int column) {
+    double col = 14;
+
+    if (row < 0 || row >= _rows.length) {
+      return col;
+    }
+
+    return _rows[row].cellFontSize(column);
+  }
+
   void addColumn(String title, double width) {
     _columns.add(CustomListViewColumn(title, width));
   }
@@ -386,6 +516,7 @@ class CustomListViewHeaderControl extends CustomControl {
 
   late CustomListViewDataSource _dataSource;
 
+  double cellContentPadding = 4;
   double itemHeight = 20;
 
   @override
@@ -393,10 +524,12 @@ class CustomListViewHeaderControl extends CustomControl {
     double colOffsetTemp = 0;
     List<double> columnsWidth = [];
     List<double> columnsOffsets = [];
+    List<TextAlign> columnsAligns = [];
     for (int column = 0; column < _dataSource.columnCount(); column++) {
       var col = _dataSource.column(column);
       columnsWidth.add(col.width());
       columnsOffsets.add(colOffsetTemp);
+      columnsAligns.add(col.textAlign());
       colOffsetTemp += col.width();
     }
 
@@ -406,7 +539,7 @@ class CustomListViewHeaderControl extends CustomControl {
       canvas.clipRect(cellRect);
 
       String cellData = _dataSource.column(column).title();
-      drawText(canvas, columnsOffsets[column], 0, size.width, itemHeight, cellData, 12, Colors.orange, TextAlign.left);
+      drawText(canvas, columnsOffsets[column] + cellContentPadding, cellContentPadding, columnsWidth[column] - cellContentPadding * 2, itemHeight - cellContentPadding * 2, cellData, 14, Colors.orange, columnsAligns[column]);
       canvas.restore();
     }
   }
@@ -421,21 +554,65 @@ class CustomListViewHeaderControl extends CustomControl {
   }
 
   void drawText(Canvas canvas, double x, double y, double width, double height, String text, double size, Color color, TextAlign align) {
-    canvas.save();
+    Size s = measureText(canvas, x, y, width, height, text, size, color, align);
+
+    if (s.width >= width - 5) {
+      Size s1 = measureText(canvas, x, y, width, height, "W", size, color, align);
+      int needLen = (width ~/ s1.width) - 3;
+      int needLen1 = needLen ~/ 2;
+      int needLen2 = needLen ~/ 2;
+
+      String text1 = text.substring(0, needLen1);
+      String text2 = text.substring(text.length - needLen2);
+      text = "$text1...$text2";
+    }
+
+    s = measureText(canvas, x, y, width, height, text, size, color, align);
+
     var textSpan = TextSpan(
       text: text,
       style: TextStyle(
         color: color,
+        fontFamily: "RobotoMono",
         fontSize: size,
+        overflow: TextOverflow.ellipsis,
       ),
     );
-    final textPainter = TextPainter(text: textSpan, textDirection: TextDirection.ltr, textAlign: align);
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: align,
+      maxLines: 1,
+    );
     textPainter.layout(
       minWidth: width,
       maxWidth: width,
     );
-    textPainter.paint(canvas, Offset(x, y + (height / 2) - (textPainter.height / 2)));
-    //textPainter.paint(canvas, Offset(x, y));
-    canvas.restore();
+
+    textPainter.paint(canvas, Offset(x, y + (height / 2) - (s.height / 2)));
+  }
+
+  Size measureText(Canvas canvas, double x, double y, double width, double height, String text, double size, Color color, TextAlign align) {
+    var textSpan = TextSpan(
+      text: text,
+      style: TextStyle(
+        color: color,
+        fontFamily: "RobotoMono",
+        fontSize: size,
+      ),
+    );
+    final textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: align,
+      maxLines: 1,
+      //ellipsis: "."
+    );
+    textPainter.layout(
+      minWidth: width,
+      maxWidth: width,
+    );
+
+    return Size(textPainter.maxIntrinsicWidth, textPainter.height);
   }
 }

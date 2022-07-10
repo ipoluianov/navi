@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:navi/create_directory_dialog.dart';
+import 'package:navi/error_dialog.dart';
 import 'package:navi/main.dart';
 
 import '../custom_listview/custom_listview.dart';
 import 'package:path/path.dart' as p;
 
-import '../executer/executer.dart';
+import '../executer/navi_server.dart';
 
 class FilePanel extends StatefulWidget {
   final bool autoFocus;
@@ -27,6 +29,7 @@ class FilePanelContext {
 
 class FilePanelState extends State<FilePanel> {
   final CustomListViewControl _customListViewControl = CustomListViewControl();
+  TextEditingController createDirectoryTextController = TextEditingController();
 
   String currentPath = "d:\\";
 
@@ -35,10 +38,15 @@ class FilePanelState extends State<FilePanel> {
     super.initState();
 
     _customListViewControl.defaultDataSource.addColumn("Name", 400);
-    _customListViewControl.defaultDataSource.addColumn("Ext", 100);
-    _customListViewControl.defaultDataSource.addColumn("Size", 120);
-    _customListViewControl.defaultDataSource.addColumn("Date", 170);
+    _customListViewControl.defaultDataSource.addColumn("Ext", 70);
+    _customListViewControl.defaultDataSource.addColumn("Size", 150);
+    _customListViewControl.defaultDataSource.addColumn("Date", 160);
     _customListViewControl.defaultDataSource.addColumn("Attr", 100);
+
+    _customListViewControl.defaultDataSource.column(0).setAlign(TextAlign.start);
+    _customListViewControl.defaultDataSource.column(1).setAlign(TextAlign.start);
+    _customListViewControl.defaultDataSource.column(2).setAlign(TextAlign.end);
+
     _customListViewControl.autoFocus = widget.autoFocus;
     _customListViewControl.showCurrentRowSelectionWhenInactive = false;
 
@@ -75,10 +83,26 @@ class FilePanelState extends State<FilePanel> {
       }
 
       if (ev.logicalKey == LogicalKeyboardKey.f3) {
-        Executer().run("Hello").then((value) {
-          print("RESULT: $value");
+        showSelector();
+      }
+
+      if (ev.logicalKey == LogicalKeyboardKey.f2) {
+        loadDirectory(currentPath, "");
+      }
+
+      if (ev.logicalKey == LogicalKeyboardKey.f7) {
+        createDirectoryTextController.text = "";
+        showCreateDirectoryDialog(context, createDirectoryTextController).then((dialogRes) {
+          print("dialogRes: $dialogRes");
+          if (dialogRes != null) {
+            String dirName = createDirectoryTextController.text;
+            NaviServer().directoryCreate("$currentPath/$dirName").then((v) {
+              loadDirectory(currentPath, dirName);
+            }).catchError((err) {
+              showErrorDialog(context, err.toString());
+            });
+          }
         });
-        //showSelector();
       }
 
       return KeyEventResult.ignored;
@@ -93,6 +117,69 @@ class FilePanelState extends State<FilePanel> {
       widget.filePanelContext.buildSelectorVisible = true;
       selectorFocusNode.requestFocus();
     });
+  }
+
+  bool extIsExecutable(String ext) {
+    switch (ext) {
+      case ".exe":
+      case ".com":
+      case ".bat":
+      case ".cmd":
+        return true;
+    }
+    return false;
+  }
+
+  bool extIsArchive(String ext) {
+    switch (ext) {
+      case ".zip":
+      case ".rar":
+      case ".tar":
+      case ".gz":
+        return true;
+    }
+    return false;
+  }
+
+  bool extIsPicture(String ext) {
+    switch (ext) {
+      case ".png":
+      case ".jpg":
+      case ".ico":
+      case ".bmp":
+        return true;
+    }
+    return false;
+  }
+
+  bool extIsDocument(String ext) {
+    switch (ext) {
+      case ".doc":
+      case ".docx":
+      case ".csv":
+      case ".pdf":
+        return true;
+    }
+    return false;
+  }
+
+  Color colorByType(NaviServerDirectoryContentResponseItem item) {
+    if (item.isDirectory) {
+      return const Color.fromARGB(255, 200, 200, 200);
+    }
+    if (extIsExecutable(p.extension(item.baseName))) {
+      return Colors.greenAccent;
+    }
+    if (extIsArchive(p.extension(item.baseName))) {
+      return Colors.purpleAccent;
+    }
+    if (extIsDocument(p.extension(item.baseName))) {
+      return Colors.amberAccent;
+    }
+    if (extIsPicture(p.extension(item.baseName))) {
+      return Colors.yellow;
+    }
+    return Colors.grey;
   }
 
   KeyEventResult mainAction() {
@@ -138,8 +225,9 @@ class FilePanelState extends State<FilePanel> {
   }
 
   void loadDirectory(String destPath, String selectItem) {
-    final dir = Directory(destPath);
-    dir.list().toList().then((value) {
+    NaviServer().directoryContent(destPath).then((value) {
+      //print("OK");
+
       _customListViewControl.currentRowIndex = 0;
       _customListViewControl.defaultDataSource.removeAllRows();
 
@@ -147,25 +235,31 @@ class FilePanelState extends State<FilePanel> {
         _customListViewControl.defaultDataSource.addRow(["[..]", "", "<DIR>", "", "--- --- ---"]);
       }
 
-      for (var entry in value) {
-        var stat = entry.statSync();
-        if (stat.type == FileSystemEntityType.directory) {
+      for (var entry in value.items) {
+        //var stat = entry.statSync();
+        if (entry.isDirectory) {
           String name = p.basename(entry.path);
-          String modTime = stat.changed.toString();
-          _customListViewControl.defaultDataSource.addRow(["[$name]", "", "<DIR>", modTime, "--- --- ---"]);
+          String modTime = entry.modifiedDT;
+          var row = _customListViewControl.defaultDataSource.addRow(["[$name]", "", "<DIR>", modTime, "--- --- ---"]);
+          row.setColor(colorByType(entry));
+          row.setCellFontSize(3, 12);
         }
       }
-      for (var entry in value) {
-        var stat = entry.statSync();
-        if (stat.type != FileSystemEntityType.directory) {
+      for (var entry in value.items) {
+        //var stat = entry.statSync();
+        if (!entry.isDirectory) {
           String name = p.basenameWithoutExtension(entry.path);
           String ext = p.extension(entry.path);
           if (ext.startsWith(".")) {
             ext = ext.substring(1);
           }
-          String modTime = stat.changed.toString();
-          String sizeStr = stat.size.toString();
-          _customListViewControl.defaultDataSource.addRow([name, ext, sizeStr, modTime, "--- --- ---"]);
+          String modTime = entry.modifiedDT;
+          String sizeStr = entry.sizeString;
+          var row = _customListViewControl.defaultDataSource.addRow([name, ext, sizeStr, modTime, "--- --- ---"]);
+          Color rowColor = colorByType(entry);
+          row.setColor(rowColor);
+          row.setCellColor(3, rowColor.withOpacity(0.3));
+          row.setCellFontSize(3, 12);
         }
       }
       for (int i = 0; i < _customListViewControl.defaultDataSource.rowCount(); i++) {
@@ -177,9 +271,11 @@ class FilePanelState extends State<FilePanel> {
       }
       currentPath = destPath;
       setState(() {});
+
     }).catchError((err) {
-      print("loadDirectory error: $err");
+      showErrorDialog(context, err.toString());
     });
+    return;
   }
 
   TextEditingController textEditingController = TextEditingController();
