@@ -25,6 +25,7 @@ func (c *FilePanel) OnInit() {
 	c.lvItems = c.AddListView()
 	c.lvItems.AddColumn("Name", 300)
 	c.lvItems.AddColumn("Type", 100)
+	c.lvItems.AddColumn("Size", 50)
 	c.lvItems.AddColumn("Attr", 50)
 	c.lvItems.AddColumn("DT", 50)
 	c.currentPath = "/Users/rb"
@@ -57,12 +58,16 @@ func (c *FilePanel) load() {
 	})
 
 	for _, item := range dirs {
-		lvItem := c.lvItems.AddItem3(item.FullName, item.DisplayType(), "")
+		lvItem := c.lvItems.AddItem(item.DisplayName())
+		lvItem.SetValue(1, item.DisplayType())
+		lvItem.SetValue(2, item.DisplaySize())
 		lvItem.SetUserData("item", item)
 	}
 
 	for _, item := range files {
-		lvItem := c.lvItems.AddItem3(item.FullName, item.DisplayType(), "")
+		lvItem := c.lvItems.AddItem(item.DisplayName())
+		lvItem.SetValue(1, item.DisplayType())
+		lvItem.SetValue(2, item.DisplaySize())
 		lvItem.SetUserData("item", item)
 	}
 }

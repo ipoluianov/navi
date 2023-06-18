@@ -18,16 +18,23 @@ func GetDirectoryContent(path string) (items []FileInfo, err error) {
 			// Empty Extension for:
 			// - dirs
 			// - 'hidden' files (.filename)
+			fi.ShortName = entry.Name()
 			fi.Extension = ""
 		} else {
 			fi.Extension = filepath.Ext(entry.Name())
+			fi.ShortName = fileNameWithoutExt(entry.Name())
 			if len(fi.Extension) > 0 && fi.Extension[0] == '.' {
 				// Remote first dot
 				fi.Extension = fi.Extension[1:]
 			}
 		}
 		fi.IsDir = entry.IsDir()
+		fi.Size = entry.Size()
 		items = append(items, fi)
 	}
 	return
+}
+
+func fileNameWithoutExt(fileName string) string {
+	return fileName[:len(fileName)-len(filepath.Ext(fileName))]
 }
