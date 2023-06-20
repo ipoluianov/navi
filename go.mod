@@ -2,7 +2,7 @@ module github.com/ipoluianov/navi
 
 go 1.20
 
-require github.com/ipoluianov/goforms v1.0.4
+require github.com/ipoluianov/goforms v1.0.5
 
 require (
 	github.com/fogleman/gg v1.3.0 // indirect

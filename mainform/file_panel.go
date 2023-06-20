@@ -9,8 +9,10 @@ import (
 
 type FilePanel struct {
 	ui.Panel
-	currentPath string
-	lvItems     *ui.ListView
+	currentPath       string
+	lvItems           *ui.ListView
+	isActive          bool
+	lastSelectedIndex int
 }
 
 func NewFilePanel(parent ui.Widget) *FilePanel {
@@ -28,8 +30,28 @@ func (c *FilePanel) OnInit() {
 	c.lvItems.AddColumn("Size", 50)
 	c.lvItems.AddColumn("Attr", 50)
 	c.lvItems.AddColumn("DT", 50)
-	c.currentPath = "/Users/rb"
+	c.lvItems.OnSelectionChanged = func() {
+		if c.lvItems.SelectedItemIndex() >= 0 {
+			c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
+		}
+	}
+	c.currentPath = "c:\\"
 	c.load()
+}
+
+func (c *FilePanel) Activate() {
+	c.isActive = true
+	c.lvItems.Focus()
+	if c.lastSelectedIndex < 0 {
+		c.lastSelectedIndex = 0
+	}
+	c.lvItems.SelectItem(c.lastSelectedIndex)
+}
+
+func (c *FilePanel) Deactivate() {
+	c.isActive = false
+	c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
+	c.lvItems.ClearSelection()
 }
 
 func (c *FilePanel) load() {
