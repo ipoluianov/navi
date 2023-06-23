@@ -8,9 +8,8 @@ import (
 )
 
 type FilePanel struct {
-	ui.Panel
+	ui.ListView
 	currentPath       string
-	lvItems           *ui.ListView
 	isActive          bool
 	lastSelectedIndex int
 }
@@ -22,17 +21,16 @@ func NewFilePanel(parent ui.Widget) *FilePanel {
 }
 
 func (c *FilePanel) OnInit() {
-	c.Panel.Init()
+	c.Construct()
 	c.SetPanelPadding(0)
-	c.lvItems = c.AddListView()
-	c.lvItems.AddColumn("Name", 300)
-	c.lvItems.AddColumn("Type", 100)
-	c.lvItems.AddColumn("Size", 50)
-	c.lvItems.AddColumn("Attr", 50)
-	c.lvItems.AddColumn("DT", 50)
-	c.lvItems.OnSelectionChanged = func() {
-		if c.lvItems.SelectedItemIndex() >= 0 {
-			c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
+	c.AddColumn("Name", 300)
+	c.AddColumn("Type", 100)
+	c.AddColumn("Size", 50)
+	c.AddColumn("Attr", 50)
+	c.AddColumn("DT", 50)
+	c.OnSelectionChanged = func() {
+		if c.SelectedItemIndex() >= 0 {
+			c.lastSelectedIndex = c.SelectedItemIndex()
 		}
 	}
 	c.currentPath = "c:\\"
@@ -41,17 +39,17 @@ func (c *FilePanel) OnInit() {
 
 func (c *FilePanel) Activate() {
 	c.isActive = true
-	c.lvItems.Focus()
+	c.Focus()
 	if c.lastSelectedIndex < 0 {
 		c.lastSelectedIndex = 0
 	}
-	c.lvItems.SelectItem(c.lastSelectedIndex)
+	c.SelectItem(c.lastSelectedIndex)
 }
 
 func (c *FilePanel) Deactivate() {
 	c.isActive = false
-	c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
-	c.lvItems.ClearSelection()
+	c.lastSelectedIndex = c.SelectedItemIndex()
+	c.ClearSelection()
 }
 
 func (c *FilePanel) load() {
@@ -80,14 +78,14 @@ func (c *FilePanel) load() {
 	})
 
 	for _, item := range dirs {
-		lvItem := c.lvItems.AddItem(item.DisplayName())
+		lvItem := c.AddItem(item.DisplayName())
 		lvItem.SetValue(1, item.DisplayType())
 		lvItem.SetValue(2, item.DisplaySize())
 		lvItem.SetUserData("item", item)
 	}
 
 	for _, item := range files {
-		lvItem := c.lvItems.AddItem(item.DisplayName())
+		lvItem := c.AddItem(item.DisplayName())
 		lvItem.SetValue(1, item.DisplayType())
 		lvItem.SetValue(2, item.DisplaySize())
 		lvItem.SetUserData("item", item)
