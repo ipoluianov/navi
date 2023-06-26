@@ -14,8 +14,11 @@ type FileInfo struct {
 	Size       int64
 	IsDir      bool
 	IsUpDir    bool
+	IsSymlink  bool
 	CreatedDT  time.Time
 	ModifiedDT time.Time
+
+	Error string
 }
 
 func (c *FileInfo) DisplayName() string {
@@ -29,6 +32,9 @@ func (c *FileInfo) DisplayName() string {
 }
 
 func (c *FileInfo) DisplayType() string {
+	if c.IsSymlink {
+		return "<LNK>"
+	}
 	if c.IsUpDir {
 		return "<DIR>"
 	}
@@ -46,4 +52,12 @@ func (c *FileInfo) DisplaySize() string {
 		return "[DIR]"
 	}
 	return strconv.FormatInt(c.Size, 10)
+}
+
+func (c *FileInfo) DisplayDateTime() string {
+	return c.ModifiedDT.Format("2006-01-02 15:04")
+}
+
+func (c *FileInfo) DisplayAttr() string {
+	return "---"
 }

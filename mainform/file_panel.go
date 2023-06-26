@@ -2,6 +2,7 @@ package mainform
 
 import (
 	"fmt"
+	"runtime"
 	"sort"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -57,13 +58,17 @@ func (c *FilePanel) OnInit() {
 	c.lvItems.AddColumn("Type", 100)
 	c.lvItems.AddColumn("Size", 50)
 	c.lvItems.AddColumn("Attr", 50)
-	c.lvItems.AddColumn("DT", 50)
+	c.lvItems.AddColumn("DT", 130)
 	c.lvItems.OnSelectionChanged = func() {
 		if c.lvItems.SelectedItemIndex() >= 0 {
 			c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
 		}
 	}
-	c.setCurrentPath("c:")
+	if runtime.GOOS == "windows" {
+		c.setCurrentPath("c:")
+	} else {
+		c.setCurrentPath("/")
+	}
 }
 
 func (c *FilePanel) Activate() {
@@ -72,7 +77,9 @@ func (c *FilePanel) Activate() {
 	if c.lastSelectedIndex < 0 {
 		c.lastSelectedIndex = 0
 	}
-	c.lvItems.SelectItem(c.lastSelectedIndex)
+	if c.lvItems.ItemsCount() > 0 {
+		c.lvItems.SelectItem(c.lastSelectedIndex)
+	}
 }
 
 func (c *FilePanel) Deactivate() {
@@ -118,6 +125,8 @@ func (c *FilePanel) loadCurrentDirectory() error {
 		lvItem := c.lvItems.AddItem(item.DisplayName())
 		lvItem.SetValue(1, item.DisplayType())
 		lvItem.SetValue(2, item.DisplaySize())
+		lvItem.SetValue(3, item.DisplayAttr())
+		lvItem.SetValue(4, item.DisplayDateTime())
 		lvItem.SetUserData("item", item)
 	}
 
@@ -125,6 +134,8 @@ func (c *FilePanel) loadCurrentDirectory() error {
 		lvItem := c.lvItems.AddItem(item.DisplayName())
 		lvItem.SetValue(1, item.DisplayType())
 		lvItem.SetValue(2, item.DisplaySize())
+		lvItem.SetValue(3, item.DisplayAttr())
+		lvItem.SetValue(4, item.DisplayDateTime())
 		lvItem.SetUserData("item", item)
 	}
 
@@ -162,6 +173,9 @@ func (c *FilePanel) gotoFolder() {
 
 func (c *FilePanel) gotoUp() {
 	parentDirectory, _ := core.SplitPath(c.currentPath)
+	if parentDirectory == "" && runtime.GOOS != "windows" {
+		parentDirectory = "/"
+	}
 	if len(parentDirectory) > 0 {
 		lastCurrentItem := c.currentItemsNames[parentDirectory]
 		delete(c.currentItemsNames, parentDirectory)

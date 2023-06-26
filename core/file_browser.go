@@ -3,6 +3,7 @@ package core
 import (
 	"io/fs"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -10,40 +11,71 @@ import (
 )
 
 func IsRoot(p string) bool {
-	//if runtime.GOOS == "windows" {
-	parentDir, _ := SplitPath(p)
-	return parentDir == ""
-	//}
+	if runtime.GOOS == "windows" {
+		parentDir, _ := SplitPath(p)
+		return parentDir == ""
+	}
+	return p == "" || p == "/"
 }
 
 func GetDirectoryContent(path1 string) (items []FileInfo, err error) {
 	var entries []fs.FileInfo
 	entries, err = ioutil.ReadDir(path1)
 
-	for _, entry := range entries {
+	if err != nil {
+		return
+	}
+
+	for _, entry1 := range entries {
 		var fi FileInfo
-		fi.FullName = path1 + pathSep() + entry.Name()
+		fi.FullName = path1 + pathSep() + entry1.Name()
 		fi.FullName = removeDuplicates(fi.FullName, "\\")
 		fi.FullName = removeDuplicates(fi.FullName, "/")
-		fi.Path = entry.Name()
-		fi.ShortName = entry.Name()
-		if entry.IsDir() || (len(entry.Name()) > 0 && entry.Name()[0] == '.') {
-			// Empty Extension for:
-			// - dirs
-			// - 'hidden' files (.filename)
-			fi.ShortName = entry.Name()
-			fi.Extension = ""
-		} else {
-			fi.Extension = filepath.Ext(entry.Name())
-			fi.ShortName = fileNameWithoutExt(entry.Name())
-			if len(fi.Extension) > 0 && fi.Extension[0] == '.' {
-				// Remote first dot
-				fi.Extension = fi.Extension[1:]
-			}
+		st, errStat := os.Stat(fi.FullName)
+		if err != nil {
+			fi.Error = err.Error()
 		}
-		fi.IsDir = entry.IsDir()
-		fi.Size = entry.Size()
-		items = append(items, fi)
+		lst, errLstat := os.Lstat(fi.FullName)
+		if errLstat == nil {
+			fi.Path = lst.Name()
+			fi.ShortName = lst.Name()
+
+			isDir := lst.IsDir()
+			name := lst.Name()
+			size := lst.Size()
+			dt := lst.ModTime()
+			if errStat == nil {
+				name = st.Name()
+				isDir = st.IsDir()
+				dt = st.ModTime()
+			}
+
+			fi.CreatedDT = dt
+			fi.ModifiedDT = dt
+
+			if lst.Mode()&os.ModeSymlink == os.ModeSymlink {
+				fi.IsSymlink = true
+			}
+
+			if isDir || (len(name) > 0 && name[0] == '.') {
+				// Empty Extension for:
+				// - dirs
+				// - 'hidden' files (.filename)
+				fi.ShortName = name
+				fi.Extension = ""
+			} else {
+				fi.Extension = filepath.Ext(name)
+				fi.ShortName = fileNameWithoutExt(name)
+				if len(fi.Extension) > 0 && fi.Extension[0] == '.' {
+					// Remote first dot
+					fi.Extension = fi.Extension[1:]
+				}
+			}
+			fi.IsDir = isDir
+			fi.Size = size
+
+			items = append(items, fi)
+		}
 	}
 	return
 }
