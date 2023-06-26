@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20201108214237-06ea97f0c265
-	github.com/ipoluianov/goforms v1.0.6
+	github.com/ipoluianov/goforms v1.0.7
 )
 
 require (

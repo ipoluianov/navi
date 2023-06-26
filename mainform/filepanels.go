@@ -26,6 +26,16 @@ func (c *FilePanels) OnInit() {
 	NewFilePanel(panel)
 	panel.AddWidget(c.filePanels[0])
 	panel.AddWidget(c.filePanels[1])
+
+	c.filePanels[0].OnMouseClick = func() {
+		c.SetCurrentPanel(0)
+	}
+	c.filePanels[1].OnMouseClick = func() {
+		c.SetCurrentPanel(1)
+	}
+
+	c.filePanels[0].Activate()
+	c.filePanels[1].Deactivate()
 }
 
 func (c *FilePanels) Tab() {
