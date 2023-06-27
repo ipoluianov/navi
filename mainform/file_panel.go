@@ -2,11 +2,14 @@ package mainform
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"sort"
+	"time"
 
 	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/ipoluianov/goforms/ui"
+	"github.com/ipoluianov/goforms/utils/canvas"
 	"github.com/ipoluianov/navi/core"
 )
 
@@ -56,9 +59,10 @@ func (c *FilePanel) OnInit() {
 	}
 	c.lvItems.AddColumn("Name", 300)
 	c.lvItems.AddColumn("Type", 100)
-	c.lvItems.AddColumn("Size", 50)
+	c.lvItems.AddColumn("Size", 150)
 	c.lvItems.AddColumn("Attr", 50)
 	c.lvItems.AddColumn("DT", 130)
+	c.lvItems.SetColumnTextAlign(2, canvas.HAlignRight)
 	c.lvItems.OnSelectionChanged = func() {
 		if c.lvItems.SelectedItemIndex() >= 0 {
 			c.lastSelectedIndex = c.lvItems.SelectedItemIndex()
@@ -98,8 +102,15 @@ func (c *FilePanel) loadCurrentDirectory() error {
 	files := make([]core.FileInfo, 0)
 
 	if !core.IsRoot(c.currentPath) {
+		var dt time.Time
+		st, err := os.Lstat(c.currentPath)
+		if err == nil {
+			dt = st.ModTime()
+		}
 		var fi core.FileInfo
 		fi.IsUpDir = true
+		fi.CreatedDT = dt
+		fi.ModifiedDT = dt
 		dirs = append(dirs, fi)
 	}
 

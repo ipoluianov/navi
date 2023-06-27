@@ -26,9 +26,9 @@ func GetDirectoryContent(path1 string) (items []FileInfo, err error) {
 		return
 	}
 
-	for _, entry1 := range entries {
+	for _, entry := range entries {
 		var fi FileInfo
-		fi.FullName = path1 + pathSep() + entry1.Name()
+		fi.FullName = path1 + pathSep() + entry.Name()
 		fi.FullName = removeDuplicates(fi.FullName, "\\")
 		fi.FullName = removeDuplicates(fi.FullName, "/")
 		st, errStat := os.Stat(fi.FullName)

@@ -32,14 +32,11 @@ func (c *FileInfo) DisplayName() string {
 }
 
 func (c *FileInfo) DisplayType() string {
-	if c.IsSymlink {
-		return "<LNK>"
-	}
 	if c.IsUpDir {
-		return "<DIR>"
+		return ""
 	}
 	if c.IsDir {
-		return "<DIR>"
+		return ""
 	}
 	return c.Extension
 }
@@ -51,7 +48,15 @@ func (c *FileInfo) DisplaySize() string {
 	if c.IsDir {
 		return "[DIR]"
 	}
-	return strconv.FormatInt(c.Size, 10)
+	sizeStr := strconv.FormatInt(c.Size, 10)
+	result := make([]byte, 0)
+	for i := 0; i < len(sizeStr); i++ {
+		result = append(result, sizeStr[i])
+		if ((len(sizeStr) - i - 1) % 3) == 0 {
+			result = append(result, ' ')
+		}
+	}
+	return string(result)
 }
 
 func (c *FileInfo) DisplayDateTime() string {
@@ -59,5 +64,6 @@ func (c *FileInfo) DisplayDateTime() string {
 }
 
 func (c *FileInfo) DisplayAttr() string {
-	return "---"
+
+	return "----"
 }
