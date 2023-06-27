@@ -1,8 +1,6 @@
 package core
 
 import (
-	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -19,8 +17,8 @@ func IsRoot(p string) bool {
 }
 
 func GetDirectoryContent(path1 string) (items []FileInfo, err error) {
-	var entries []fs.FileInfo
-	entries, err = ioutil.ReadDir(path1)
+	var entries []os.DirEntry
+	entries, err = os.ReadDir(path1)
 
 	if err != nil {
 		return
