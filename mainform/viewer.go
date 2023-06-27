@@ -6,13 +6,14 @@ import (
 
 type Viewer struct {
 	ui.Panel
-	txtViewer *PlainViewer
+	txtViewer *HexViewer
 }
 
 func NewFileViewer(parent ui.Widget) *Viewer {
 	var c Viewer
 	c.InitControl(parent, &c)
-	c.txtViewer = NewPlainViewer(&c)
+	c.SetPanelPadding(0)
+	c.txtViewer = NewHexViewer(&c)
 	c.AddWidget(c.txtViewer)
 	return &c
 }
