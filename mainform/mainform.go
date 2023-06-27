@@ -24,7 +24,7 @@ func NewMainForm() *ui.Form {
 	fileViewer := NewFileViewer(panel)
 	tabPage1.AddWidget(fileViewer)
 
-	tabs.SetCurrentPage(0)
+	tabs.SetCurrentPage(1)
 
 	panel.AddWidget(NewCommandLine(panel))
 	form.OnKeyDown = func(event *ui.KeyDownEvent) bool {
