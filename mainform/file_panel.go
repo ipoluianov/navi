@@ -204,3 +204,8 @@ func (c *FilePanel) tryToSetCurrentItem(fullPath string) {
 		}
 	}
 }
+
+func (c *FilePanel) SelectedFile() string {
+	item := c.lvItems.SelectedItem().UserData("item").(core.FileInfo)
+	return item.FullName
+}

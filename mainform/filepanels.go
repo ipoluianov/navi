@@ -56,3 +56,7 @@ func (c *FilePanels) SetCurrentPanel(index int) {
 	c.currentPanelIndex = index
 	c.filePanels[c.currentPanelIndex].Activate()
 }
+
+func (c *FilePanels) SelectedFile() string {
+	return c.filePanels[c.currentPanelIndex].SelectedFile()
+}
