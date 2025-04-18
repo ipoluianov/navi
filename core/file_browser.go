@@ -30,8 +30,8 @@ func GetDirectoryContent(path1 string) (items []FileInfo, err error) {
 		fi.FullName = removeDuplicates(fi.FullName, "\\")
 		fi.FullName = removeDuplicates(fi.FullName, "/")
 		st, errStat := os.Stat(fi.FullName)
-		if err != nil {
-			fi.Error = err.Error()
+		if errStat != nil {
+			fi.Error = errStat.Error()
 		}
 		lst, errLstat := os.Lstat(fi.FullName)
 		if errLstat == nil {
