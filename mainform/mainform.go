@@ -1,8 +1,8 @@
 package mainform
 
 import (
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/ipoluianov/goforms/ui"
+	"github.com/ipoluianov/nui/nuikey"
 )
 
 func NewMainForm() *ui.Form {
@@ -28,17 +28,17 @@ func NewMainForm() *ui.Form {
 
 	panel.AddWidget(NewCommandLine(panel))
 	form.OnKeyDown = func(event *ui.KeyDownEvent) bool {
-		if event.Key == glfw.KeyTab {
+		if event.Key == nuikey.KeyTab {
 			filePanels.Tab()
 			return true
 		}
-		if event.Key == glfw.KeyF3 {
+		if event.Key == nuikey.KeyF3 {
 			file := filePanels.SelectedFile()
 			fileViewer.SetFile(file)
 			tabs.SetCurrentPage(1)
 			return true
 		}
-		if event.Key == glfw.KeyEscape {
+		if event.Key == nuikey.KeyEsc {
 			tabs.SetCurrentPage(0)
 			return true
 		}

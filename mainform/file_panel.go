@@ -7,10 +7,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/go-gl/glfw/v3.3/glfw"
 	"github.com/ipoluianov/goforms/ui"
 	"github.com/ipoluianov/goforms/utils/canvas"
 	"github.com/ipoluianov/navi/core"
+	"github.com/ipoluianov/nui/nuikey"
 )
 
 type FilePanel struct {
@@ -42,11 +42,11 @@ func (c *FilePanel) OnInit() {
 	c.lvItems = column.AddListView()
 	c.lvItems.AllowDeselectItems = false
 	c.lvItems.SetOnKeyDown(func(event *ui.KeyDownEvent) bool {
-		if event.Key == glfw.KeyEnter {
+		if event.Key == nuikey.KeyEnter {
 			c.gotoFolder()
 			return true
 		}
-		if event.Key == glfw.KeyBackspace {
+		if event.Key == nuikey.KeyBackspace {
 			c.gotoUp()
 			return true
 		}

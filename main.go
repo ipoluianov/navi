@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-	ui.InitUI()
 	mainForm := mainform.NewMainForm()
 	ui.StartMainForm(mainForm)
 }
